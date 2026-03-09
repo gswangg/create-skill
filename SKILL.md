@@ -1,14 +1,12 @@
 ---
 name: create-skill
 description: Create a new Claude Code skill. Use when the user wants to create a custom slash command, add background knowledge, or define a reusable workflow.
-argument-hint: [skill-name] [description]
+argument-hint: "description of the skill to create"
 ---
 
 # Create a New Claude Code Skill
 
-Create a skill based on the user's request. If arguments are provided, use them:
-- `$\0` = skill name
-- `$\1` and beyond = description or purpose
+Create a skill based on the user's request. `$ARGUMENTS` is a plain text description of what the skill should do.
 
 ## Skill Location
 
@@ -70,7 +68,7 @@ By default, skills are invocable by both the user (via `/skill-name`) and Claude
 
 | Field | Purpose |
 |-------|---------|
-| `argument-hint` | Autocomplete hint. Example: `[issue-number]` or `[source] [target]` |
+| `argument-hint` | Autocomplete hint shown to user. Use a plain description string (e.g. `"description of what to do"`). Only use structured `[arg]` syntax if the user specifically requests positional arguments. |
 
 ## Variable Substitutions
 
@@ -78,11 +76,13 @@ Use these in skill content:
 
 | Variable | Expands To |
 |----------|------------|
-| `$\ARGUMENTS` | All arguments passed when invoking |
-| `$\0`, `$\1`, `$\2`, ... | Specific arguments by position |
+| `$\ARGUMENTS` | All arguments passed when invoking (preferred — treat as plain text description) |
+| `$\0`, `$\1`, `$\2`, ... | Specific arguments by position (only use when user explicitly requests structured args) |
 | `$\{CLAUDE_SESSION_ID}` | Current session ID |
 
 (Remove backslashes in actual skill files)
+
+**Default to `$\ARGUMENTS` as a plain string.** Only use positional `$\0`, `$\1` etc. if the user specifically asks for structured arguments.
 
 ## Dynamic Context Injection
 
@@ -123,18 +123,18 @@ When explaining code:
 4. Highlight common gotchas
 ```
 
-### Pattern 2: Command with Arguments
+### Pattern 2: Command with Arguments (Plain String)
 
 ```yaml
 ---
 name: fix-issue
 description: Fix a GitHub issue by number
 disable-model-invocation: true
-argument-hint: [issue-number]
+argument-hint: "issue number or description"
 ---
 
-Fix GitHub issue #$\ARGUMENTS:
-1. Read the issue with `gh issue view $\ARGUMENTS`
+Fix GitHub issue based on: $\ARGUMENTS
+1. Find the relevant issue
 2. Understand requirements
 3. Implement the fix
 4. Write tests
@@ -197,13 +197,15 @@ Analyze this PR for:
 
 (Remove backslashes in actual skill files)
 
-### Pattern 6: Multi-Argument Command
+### Pattern 6: Structured Arguments (Only When Explicitly Requested)
+
+Most skills should use `$\ARGUMENTS` as a plain string. Only use positional args if the user specifically asks for them:
 
 ```yaml
 ---
 name: migrate
 description: Migrate code from one pattern to another
-argument-hint: [file-pattern] [from] [to]
+argument-hint: "[file-pattern] [from] [to]"
 ---
 
 Migrate files matching `$\0` from $\1 to $\2.
